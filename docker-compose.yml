@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: refillmap-db
+    environment:
+      POSTGRES_DB: refillmap
+      POSTGRES_USER: refillmap
+      POSTGRES_PASSWORD: refillmap_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - refillmap_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U refillmap -d refillmap"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build: ./backend
+    container_name: refillmap-api
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/refillmap
+      SPRING_DATASOURCE_USERNAME: refillmap
+      SPRING_DATASOURCE_PASSWORD: refillmap_dev_password
+      APP_CORS_ALLOWED_ORIGINS: http://localhost:5173
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: refillmap-web
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  refillmap_data:
